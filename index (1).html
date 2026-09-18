@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLARITY CHAMPIONSHIP — Votação</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#121822;
+    --panel-2:#171f2c;
+    --line:#26313f;
+    --gold:#d9a441;
+    --gold-2:#f0c869;
+    --text:#eef2f6;
+    --muted:#8695a7;
+    --ok:#3ddc84;
+    --err:#ff6161;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(1200px 600px at 50% -10%, #182233 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    padding:32px 16px 64px;
+  }
+  .wrap{max-width:720px;margin:0 auto;}
+  header{text-align:center;margin-bottom:28px;}
+  .school{
+    letter-spacing:.14em;
+    font-size:13px;
+    color:var(--gold-2);
+    font-weight:600;
+    margin-bottom:6px;
+  }
+  h1{
+    font-size:44px;
+    margin:0 0 10px;
+    letter-spacing:.03em;
+    background:linear-gradient(180deg,var(--gold-2),var(--gold));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .tagline{color:var(--muted);margin:0 0 18px;font-size:15px;}
+  .prize{
+    display:inline-block;
+    border:1px solid var(--line);
+    background:var(--panel);
+    border-radius:999px;
+    padding:8px 18px;
+    font-size:14px;
+    color:var(--gold-2);
+  }
+  section.card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px;
+    margin-bottom:20px;
+  }
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px;}
+  input[type=text]{
+    width:100%;
+    padding:13px 14px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    font-size:16px;
+    outline:none;
+  }
+  input[type=text]:focus{border-color:var(--gold);}
+  .teams{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+    gap:12px;
+    margin-top:18px;
+  }
+  .team-btn{
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    border-radius:12px;
+    padding:16px 10px;
+    font-weight:700;
+    letter-spacing:.04em;
+    font-size:14px;
+    transition:transform .12s ease, border-color .12s ease, background .12s ease;
+  }
+  .team-btn:hover{border-color:var(--gold);transform:translateY(-2px);}
+  .team-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .status-msg{
+    margin-top:16px;
+    padding:12px 14px;
+    border-radius:10px;
+    font-size:14px;
+    display:none;
+  }
+  .status-msg.show{display:block;}
+  .status-msg.ok{background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.4);color:var(--ok);}
+  .status-msg.err{background:rgba(255,97,97,.12);border:1px solid rgba(255,97,97,.4);color:var(--err);}
+  .placar-title{
+    font-size:13px;
+    letter-spacing:.12em;
+    color:var(--muted);
+    margin-bottom:14px;
+  }
+  .placar-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:12px;
+  }
+  .placar-row .nome{width:80px;font-weight:700;font-size:14px;}
+  .placar-row .barra-bg{
+    flex:1;
+    height:10px;
+    background:var(--panel-2);
+    border-radius:999px;
+    overflow:hidden;
+  }
+  .placar-row .barra{
+    height:100%;
+    background:linear-gradient(90deg,var(--gold),var(--gold-2));
+    width:0%;
+    transition:width .4s ease;
+  }
+  .placar-row .qtd{width:34px;text-align:right;font-size:14px;color:var(--muted);}
+  .participantes-title{
+    font-size:13px;
+    letter-spacing:.12em;
+    color:var(--muted);
+    margin-bottom:12px;
+  }
+  .lista{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    max-height:220px;
+    overflow-y:auto;
+  }
+  .chip{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:6px 12px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .chip b{color:var(--text);}
+  .vazio{color:var(--muted);font-size:14px;}
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    letter-spacing:.06em;
+    margin-top:28px;
+  }
+  .sync-note{
+    text-align:center;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:-8px;
+    margin-bottom:20px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="school">CLARITY TRADING SCHOOL</div>
+    <h1>CHAMPIONSHIP</h1>
+    <p class="tagline">O JOGO COMEÇA AGORA.</p>
+    <div class="prize">🏆 PRÊMIO DA TORCIDA — 1 VAGA NA CLARITY TRADING SCHOOL</div>
+  </header>
+
+  <section class="card">
+    <label for="nomeInput">Seu nome</label>
+    <input type="text" id="nomeInput" placeholder="Digite seu nome" maxlength="60" autocomplete="off">
+
+    <label style="margin-top:18px;">Escolha sua equipe</label>
+    <div class="teams" id="teamButtons">
+      <button class="team-btn" data-equipe="NEXUS">VOTAR NEXUS</button>
+      <button class="team-btn" data-equipe="VECTOR">VOTAR VECTOR</button>
+      <button class="team-btn" data-equipe="AXION">VOTAR AXION</button>
+      <button class="team-btn" data-equipe="PRIME">VOTAR PRIME</button>
+      <button class="team-btn" data-equipe="ORION">VOTAR ORION</button>
+    </div>
+
+    <div class="status-msg" id="statusMsg"></div>
+  </section>
+
+  <section class="card">
+    <div class="placar-title">PLACAR DA TORCIDA</div>
+    <div id="placar"></div>
+  </section>
+
+  <div class="sync-note" id="syncNote"></div>
+
+  <section class="card">
+    <div class="participantes-title">PARTICIPANTES</div>
+    <div class="lista" id="listaParticipantes">
+      <span class="vazio">Carregando participantes...</span>
+    </div>
+  </section>
+
+  <footer>CLARITY TRADING SCHOOL • LMP — A LÓGICA MATEMÁTICA DO PREÇO</footer>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO SUPABASE
+   Cole aqui a sua chave PUBLICÁVEL (anon/public key) do Supabase.
+   Não use a chave secreta/service_role aqui — este arquivo roda
+   no navegador do visitante.
+   ============================================================ */
+const SUPABASE_URL = "https://sjjhwkivihyyrdgmcpkd.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_OW9G_BWJ47VhLaTwVXhA_g_LYs2iNrk";
+
+const VOTOS_ENDPOINT = `${SUPABASE_URL}/rest/v1/votos`;
+const EQUIPES = ["NEXUS", "VECTOR", "AXION", "PRIME", "ORION"];
+const REFRESH_MS = 10000;
+
+let votosCache = [];
+let votando = false;
+
+function supabaseHeaders(extra = {}) {
+  return {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+    ...extra
+  };
+}
+
+async function fetchVotos() {
+  const url = `${VOTOS_ENDPOINT}?select=nome,equipe,criado_em&order=criado_em.asc`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: supabaseHeaders()
+  });
+  if (!res.ok) {
+    throw new Error(`Falha ao carregar votos (HTTP ${res.status})`);
+  }
+  return res.json();
+}
+
+async function inserirVoto(nome, equipe) {
+  const res = await fetch(VOTOS_ENDPOINT, {
+    method: "POST",
+    headers: supabaseHeaders({
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    }),
+    body: JSON.stringify({ nome, equipe })
+  });
+  return res;
+}
+
+function renderPlacar(votos) {
+  const contagem = {};
+  EQUIPES.forEach(e => contagem[e] = 0);
+  votos.forEach(v => {
+    if (contagem.hasOwnProperty(v.equipe)) contagem[v.equipe]++;
+  });
+  const total = votos.length || 1;
+  const placarEl = document.getElementById("placar");
+  placarEl.innerHTML = "";
+  EQUIPES.forEach(equipe => {
+    const qtd = contagem[equipe];
+    const pct = Math.round((qtd / total) * 100);
+    const row = document.createElement("div");
+    row.className = "placar-row";
+    row.innerHTML = `
+      <div class="nome">${equipe}</div>
+      <div class="barra-bg"><div class="barra" style="width:${pct}%"></div></div>
+      <div class="qtd">${qtd}</div>
+    `;
+    placarEl.appendChild(row);
+  });
+}
+
+function renderParticipantes(votos) {
+  const listaEl = document.getElementById("listaParticipantes");
+  if (!votos.length) {
+    listaEl.innerHTML = '<span class="vazio">Nenhum voto registrado ainda.</span>';
+    return;
+  }
+  listaEl.innerHTML = "";
+  // mais recentes primeiro
+  [...votos].reverse().forEach(v => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.innerHTML = `<b>${escapeHtml(v.nome)}</b> — ${escapeHtml(v.equipe)}`;
+    listaEl.appendChild(chip);
+  });
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function showStatus(msg, tipo) {
+  const el = document.getElementById("statusMsg");
+  el.textContent = msg;
+  el.className = `status-msg show ${tipo}`;
+}
+
+function clearStatus() {
+  const el = document.getElementById("statusMsg");
+  el.className = "status-msg";
+}
+
+function setSyncNote(msg) {
+  document.getElementById("syncNote").textContent = msg;
+}
+
+async function carregarEAtualizar() {
+  try {
+    const votos = await fetchVotos();
+    votosCache = votos;
+    renderPlacar(votos);
+    renderParticipantes(votos);
+    setSyncNote(`Atualizado às ${new Date().toLocaleTimeString("pt-BR")}`);
+  } catch (err) {
+    console.error(err);
+    setSyncNote("Não foi possível atualizar o placar agora. Tentando novamente...");
+  }
+}
+
+function setBotoesDesabilitados(desabilitado) {
+  document.querySelectorAll(".team-btn").forEach(btn => btn.disabled = desabilitado);
+}
+
+async function votar(equipe) {
+  if (votando) return;
+
+  const nomeInput = document.getElementById("nomeInput");
+  const nome = nomeInput.value.trim();
+
+  if (nome.length < 2) {
+    showStatus("Digite seu nome (mínimo 2 caracteres) antes de votar.", "err");
+    nomeInput.focus();
+    return;
+  }
+
+  if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.startsWith("COLE_AQUI")) {
+    showStatus("Configuração pendente: a chave publicável do Supabase ainda não foi definida no código.", "err");
+    return;
+  }
+
+  votando = true;
+  setBotoesDesabilitados(true);
+  clearStatus();
+
+  try {
+    const res = await inserirVoto(nome, equipe);
+
+    if (res.ok) {
+      showStatus(`Voto registrado para ${equipe}. Obrigado, ${nome}!`, "ok");
+      nomeInput.value = "";
+      nomeInput.disabled = true;
+      await carregarEAtualizar();
+    } else if (res.status === 409) {
+      showStatus("Esse nome já votou. Cada participante pode votar apenas uma vez.", "err");
+      setBotoesDesabilitados(false);
+    } else {
+      let detalhe = "";
+      try {
+        const corpo = await res.json();
+        detalhe = corpo.message || corpo.hint || "";
+      } catch (_) {}
+      if (detalhe.toLowerCase().includes("duplicate") || detalhe.toLowerCase().includes("unique")) {
+        showStatus("Esse nome já votou. Cada participante pode votar apenas uma vez.", "err");
+      } else {
+        showStatus(`Não foi possível registrar o voto (HTTP ${res.status}). Tente novamente.`, "err");
+      }
+      setBotoesDesabilitados(false);
+    }
+  } catch (err) {
+    console.error(err);
+    showStatus("Falha de conexão com o servidor de votação. Verifique sua internet e tente novamente.", "err");
+    setBotoesDesabilitados(false);
+  } finally {
+    votando = false;
+  }
+}
+
+document.getElementById("teamButtons").addEventListener("click", (e) => {
+  const btn = e.target.closest(".team-btn");
+  if (!btn) return;
+  votar(btn.dataset.equipe);
+});
+
+// carga inicial + atualização periódica a partir do Supabase
+carregarEAtualizar();
+setInterval(carregarEAtualizar, REFRESH_MS);
+</script>
+</body>
+</html>
