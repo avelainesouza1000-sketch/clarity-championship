@@ -1,1 +1,897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clarity Championship — Administrativo</title>
 
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#07111f;
+  color:#fff;
+}
+
+.wrap{
+  max-width:1200px;
+  margin:0 auto;
+  padding:28px 18px 50px;
+}
+
+.brand{
+  text-align:center;
+  padding:28px 18px;
+  margin-bottom:22px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  background:linear-gradient(135deg,#071a31,#0b2441);
+}
+
+.brand h1{
+  margin:0;
+  font-size:30px;
+  letter-spacing:2px;
+}
+
+.brand p{
+  margin:8px 0 0;
+  color:#b9c8da;
+  letter-spacing:1px;
+}
+
+.card{
+  background:#0c1726;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;
+  padding:20px;
+  margin-bottom:18px;
+}
+
+.login{
+  max-width:460px;
+  margin:50px auto;
+}
+
+label{
+  display:block;
+  margin:14px 0 7px;
+  color:#c8d5e4;
+  font-weight:600;
+}
+
+input,select{
+  width:100%;
+  padding:13px 14px;
+  border-radius:10px;
+  border:1px solid #30445d;
+  background:#07111f;
+  color:#fff;
+  outline:none;
+  font-size:15px;
+}
+
+input:focus,select:focus{
+  border-color:#58a6ff;
+}
+
+button{
+  border:0;
+  border-radius:10px;
+  padding:13px 18px;
+  font-weight:700;
+  cursor:pointer;
+  font-size:15px;
+}
+
+.primary{
+  background:#1677ff;
+  color:#fff;
+  width:100%;
+  margin-top:18px;
+}
+
+.secondary{
+  background:#23344b;
+  color:#fff;
+}
+
+.danger{
+  background:#8f2530;
+  color:#fff;
+}
+
+.msg{
+  margin-top:14px;
+  padding:11px 12px;
+  border-radius:9px;
+  display:none;
+}
+
+.error{
+  background:#4a1820;
+  color:#ffb7bf;
+}
+
+.ok{
+  background:#123c2a;
+  color:#a9f1c8;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.topbar h2{
+  margin:0;
+  font-size:22px;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:12px;
+}
+
+.stat{
+  background:#101f32;
+  border-radius:12px;
+  padding:16px;
+  text-align:center;
+}
+
+.stat strong{
+  display:block;
+  font-size:25px;
+  margin-top:5px;
+}
+
+.filters{
+  display:grid;
+  grid-template-columns:1fr 220px;
+  gap:12px;
+}
+
+.table-wrap{
+  overflow:auto;
+  margin-top:16px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:760px;
+}
+
+th,td{
+  padding:13px 12px;
+  border-bottom:1px solid #213248;
+  text-align:left;
+}
+
+th{
+  color:#8fb0d2;
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
+
+td{
+  font-size:14px;
+}
+
+.badge{
+  display:inline-block;
+  padding:5px 9px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:12px;
+}
+
+.nexus{
+  background:#123b75;
+  color:#80b7ff;
+}
+
+.vector{
+  background:#5a3911;
+  color:#ffc76a;
+}
+
+.axion{
+  background:#3b1a61;
+  color:#d09aff;
+}
+
+.prime{
+  background:#0b5a45;
+  color:#76e0bb;
+}
+
+.orion{
+  background:#631e25;
+  color:#ff9aa4;
+}
+
+.muted{
+  color:#8fa1b6;
+}
+
+.hidden{
+  display:none!important;
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.draw-result{
+  margin-top:16px;
+  padding:20px;
+  border:1px solid #31506f;
+  border-radius:14px;
+  background:#101f32;
+}
+
+.draw-name{
+  font-size:25px;
+  font-weight:800;
+  margin-top:7px;
+}
+
+.draw-phone{
+  font-size:18px;
+  margin-top:8px;
+}
+
+@media(max-width:900px){
+  .stats{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+
+@media(max-width:600px){
+  .stats{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .filters{
+    grid-template-columns:1fr;
+  }
+
+  .topbar{
+    align-items:stretch;
+  }
+
+  .actions button{
+    flex:1;
+  }
+}
+
+@media(max-width:480px){
+  .wrap{
+    padding:16px 10px 35px;
+  }
+
+  .brand h1{
+    font-size:23px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <div class="brand">
+    <h1>CLARITY CHAMPIONSHIP</h1>
+    <p>PAINEL ADMINISTRATIVO • PARTICIPANTES</p>
+  </div>
+
+  <section id="loginCard" class="card login">
+    <h2>🔐 Acesso administrativo</h2>
+
+    <p class="muted">
+      Entre com o e-mail e a senha do administrador.
+    </p>
+
+    <label for="email">E-mail</label>
+    <input
+      id="email"
+      type="email"
+      autocomplete="username"
+      placeholder="Seu e-mail"
+    >
+
+    <label for="password">Senha</label>
+    <input
+      id="password"
+      type="password"
+      autocomplete="current-password"
+      placeholder="Sua senha"
+    >
+
+    <button id="loginBtn" class="primary">
+      ENTRAR
+    </button>
+
+    <div id="loginMsg" class="msg error"></div>
+  </section>
+
+  <section id="adminPanel" class="hidden">
+
+    <div class="card">
+      <div class="topbar">
+
+        <div>
+          <h2>Participantes</h2>
+          <div class="muted" id="loggedUser"></div>
+        </div>
+
+        <div class="actions">
+          <button id="refreshBtn" class="secondary">
+            ↻ Atualizar
+          </button>
+
+          <button id="exportBtn" class="secondary">
+            ↓ Exportar CSV
+          </button>
+
+          <button id="logoutBtn" class="danger">
+            Sair
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="card">
+
+      <div class="filters">
+
+        <input
+          id="search"
+          type="search"
+          placeholder="🔎 Buscar por nome ou telefone"
+        >
+
+        <select id="teamFilter">
+          <option value="">Todas as equipes</option>
+          <option>NEXUS</option>
+          <option>VECTOR</option>
+          <option>AXION</option>
+          <option>PRIME</option>
+          <option>ORION</option>
+        </select>
+
+      </div>
+
+      <div id="dataMsg" class="msg"></div>
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Telefone</th>
+              <th>Equipe</th>
+              <th>Data / Hora</th>
+            </tr>
+          </thead>
+
+          <tbody id="tbody"></tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="topbar">
+
+        <div>
+          <h2>🎲 Sorteio da equipe vencedora</h2>
+
+          <div class="muted">
+            Selecione a equipe vencedora para sortear um participante entre os votos dela.
+          </div>
+        </div>
+
+      </div>
+
+      <div class="filters" style="margin-top:16px;">
+
+        <select id="drawTeam">
+          <option value="">Selecione a equipe vencedora</option>
+          <option>NEXUS</option>
+          <option>VECTOR</option>
+          <option>AXION</option>
+          <option>PRIME</option>
+          <option>ORION</option>
+        </select>
+
+        <button id="drawBtn" class="primary" style="margin-top:0;">
+          🎲 SORTEAR PARTICIPANTE
+        </button>
+
+      </div>
+
+      <div id="drawMsg" class="msg error"></div>
+
+      <div id="drawResult" class="draw-result hidden">
+
+        <div class="muted">
+          PARTICIPANTE SORTEADO
+        </div>
+
+        <div id="drawName" class="draw-name"></div>
+
+        <div id="drawPhone" class="draw-phone"></div>
+
+        <div id="drawTeam" style="margin-top:10px;"></div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+const SUPABASE_URL =
+  "https://sjjhwkivihyyrdgmcpkd.supabase.co";
+
+const SUPABASE_ANON_KEY =
+  "sb_publishable_OW9G_BWJ47VhLaTwVXhA_g_LYs2iNrk";
+
+const { createClient } = supabase;
+
+const client =
+  createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let allVotes = [];
+
+const $ = id =>
+  document.getElementById(id);
+
+function showMsg(el,text,type="error"){
+  el.textContent = text;
+  el.className = "msg " + type;
+  el.style.display = "block";
+}
+
+function hideMsg(el){
+  el.style.display = "none";
+}
+
+function teamClass(team){
+  return String(team || "").toLowerCase();
+}
+
+function formatDate(value){
+
+  if(!value) return "—";
+
+  const d = new Date(value);
+
+  if(Number.isNaN(d.getTime()))
+    return value;
+
+  return d.toLocaleString("pt-BR",{
+    day:"2-digit",
+    month:"2-digit",
+    year:"numeric",
+    hour:"2-digit",
+    minute:"2-digit"
+  });
+}
+
+function formatPhone(phone){
+
+  if(!phone) return "—";
+
+  const d =
+    String(phone).replace(/\D/g,"");
+
+  if(d.length === 11)
+    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+
+  if(d.length === 10)
+    return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+
+  return phone;
+}
+
+function escapeHtml(s){
+
+  return String(s).replace(/[&<>"']/g,c => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#039;"
+  }[c]));
+}
+
+function renderStats(){
+
+  const teams =
+    ["NEXUS","VECTOR","AXION","PRIME","ORION"];
+
+  $("stats").innerHTML = `
+    <div class="stat">
+      TOTAL
+      <strong>${allVotes.length}</strong>
+    </div>
+
+    ${teams.map(t => `
+      <div class="stat">
+        ${t}
+        <strong>
+          ${allVotes.filter(v=>v.equipe===t).length}
+        </strong>
+      </div>
+    `).join("")}
+  `;
+}
+
+function renderTable(){
+
+  const search =
+    $("search").value.trim().toLowerCase();
+
+  const team =
+    $("teamFilter").value;
+
+  const filtered =
+    allVotes.filter(v => {
+
+      const hay =
+        `${v.nome || ""} ${v.telefone || ""}`
+        .toLowerCase();
+
+      return (
+        (!search || hay.includes(search)) &&
+        (!team || v.equipe === team)
+      );
+    });
+
+  $("tbody").innerHTML =
+    filtered.map(v => `
+      <tr>
+
+        <td>
+          ${escapeHtml(v.nome || "")}
+        </td>
+
+        <td>
+          ${escapeHtml(formatPhone(v.telefone))}
+        </td>
+
+        <td>
+          <span class="badge ${teamClass(v.equipe)}">
+            ${escapeHtml(v.equipe || "")}
+          </span>
+        </td>
+
+        <td>
+          ${escapeHtml(formatDate(v.criado_em))}
+        </td>
+
+      </tr>
+    `).join("");
+
+  if(!filtered.length){
+
+    $("tbody").innerHTML = `
+      <tr>
+        <td colspan="4" class="muted">
+          Nenhum participante encontrado.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+async function loadVotes(){
+
+  hideMsg($("dataMsg"));
+
+  $("tbody").innerHTML = `
+    <tr>
+      <td colspan="4" class="muted">
+        Carregando...
+      </td>
+    </tr>
+  `;
+
+  const {data,error} =
+    await client
+      .from("votos")
+      .select(
+        "nome,telefone,equipe,criado_em"
+      )
+      .order(
+        "criado_em",
+        {ascending:false}
+      );
+
+  if(error){
+
+    showMsg(
+      $("dataMsg"),
+      "Este usuário não possui permissão para consultar os participantes."
+    );
+
+    $("tbody").innerHTML = `
+      <tr>
+        <td colspan="4" class="muted">
+          Acesso não autorizado.
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+  allVotes = data || [];
+
+  renderStats();
+  renderTable();
+}
+
+function exportCSV(){
+
+  const rows =
+    allVotes.map(v => [
+      v.nome || "",
+      v.telefone || "",
+      v.equipe || "",
+      formatDate(v.criado_em)
+    ]);
+
+  const csv = [
+    ["Nome","Telefone","Equipe","Data/Hora"],
+    ...rows
+  ]
+  .map(row =>
+    row.map(x =>
+      `"${String(x).replace(/"/g,'""')}"`
+    ).join(";")
+  )
+  .join("\n");
+
+  const blob =
+    new Blob(
+      ["\ufeff" + csv],
+      {type:"text/csv;charset=utf-8;"}
+    );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const a =
+    document.createElement("a");
+
+  a.href = url;
+
+  a.download =
+    "participantes-clarity-championship.csv";
+
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+$("loginBtn").addEventListener(
+  "click",
+  async () => {
+
+    hideMsg($("loginMsg"));
+
+    const email =
+      $("email").value.trim();
+
+    const password =
+      $("password").value;
+
+    if(!email || !password){
+
+      showMsg(
+        $("loginMsg"),
+        "Informe seu e-mail e sua senha."
+      );
+
+      return;
+    }
+
+    const {data,error} =
+      await client.auth
+        .signInWithPassword({
+          email,
+          password
+        });
+
+    if(error){
+
+      showMsg(
+        $("loginMsg"),
+        "E-mail ou senha inválidos."
+      );
+
+      return;
+    }
+
+    $("loginCard")
+      .classList.add("hidden");
+
+    $("adminPanel")
+      .classList.remove("hidden");
+
+    $("loggedUser").textContent =
+      data.user.email || "";
+
+    await loadVotes();
+  }
+);
+
+$("logoutBtn").addEventListener(
+  "click",
+  async () => {
+
+    await client.auth.signOut();
+
+    $("adminPanel")
+      .classList.add("hidden");
+
+    $("loginCard")
+      .classList.remove("hidden");
+
+    $("password").value = "";
+  }
+);
+
+$("refreshBtn").addEventListener(
+  "click",
+  loadVotes
+);
+
+$("exportBtn").addEventListener(
+  "click",
+  exportCSV
+);
+
+$("search").addEventListener(
+  "input",
+  renderTable
+);
+
+$("teamFilter").addEventListener(
+  "change",
+  renderTable
+);
+
+$("password").addEventListener(
+  "keydown",
+  e => {
+
+    if(e.key === "Enter")
+      $("loginBtn").click();
+
+  }
+);
+
+$("drawBtn").addEventListener(
+  "click",
+  () => {
+
+    hideMsg($("drawMsg"));
+
+    $("drawResult")
+      .classList.add("hidden");
+
+    const team =
+      $("drawTeam").value;
+
+    if(!team){
+
+      showMsg(
+        $("drawMsg"),
+        "Selecione primeiro a equipe vencedora."
+      );
+
+      return;
+    }
+
+    const eligible =
+      allVotes.filter(
+        v => v.equipe === team
+      );
+
+    if(!eligible.length){
+
+      showMsg(
+        $("drawMsg"),
+        `Não há participantes com voto registrado para a equipe ${team}.`
+      );
+
+      return;
+    }
+
+    const confirmed =
+      confirm(
+        `Sortear agora um participante entre os ${eligible.length} voto(s) da equipe ${team}?`
+      );
+
+    if(!confirmed) return;
+
+    const winner =
+      eligible[
+        Math.floor(
+          Math.random() * eligible.length
+        )
+      ];
+
+    $("drawName").textContent =
+      winner.nome || "Sem nome";
+
+    $("drawPhone").textContent =
+      `📱 ${formatPhone(winner.telefone)}`;
+
+    $("drawTeam").innerHTML =
+      `<span class="badge ${teamClass(winner.equipe)}">
+        ${escapeHtml(winner.equipe)}
+      </span>`;
+
+    $("drawResult")
+      .classList.remove("hidden");
+  }
+);
+
+async function checkSession(){
+
+  const {data:{session}} =
+    await client.auth.getSession();
+
+  if(session){
+
+    $("loginCard")
+      .classList.add("hidden");
+
+    $("adminPanel")
+      .classList.remove("hidden");
+
+    $("loggedUser").textContent =
+      session.user.email || "";
+
+    await loadVotes();
+  }
+}
+
+checkSession();
+
+</script>
+
+</body>
+</html>
