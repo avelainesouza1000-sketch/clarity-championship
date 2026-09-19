@@ -15,12 +15,13 @@
 body {
   margin:0; font-family: Georgia, "Times New Roman", serif;
   background:
-    radial-gradient(circle at 50% -10%, rgba(215,173,85,.18), transparent 34%),
-    linear-gradient(180deg,#050505,#0b0b0b 55%,#050505);
+    radial-gradient(circle at 50% 0%, rgba(25,100,180,.25), transparent 38%),
+    radial-gradient(circle at 50% 45%, rgba(5,55,110,.30), transparent 60%),
+    linear-gradient(180deg,#020b18,#041426 50%,#020914);
   color:var(--text); min-height:100vh;
 }
 .wrap { max-width:1200px; margin:auto; padding:28px 18px 50px; }
-.logo { width:min(620px,92vw); display:block; margin:0 auto 12px; border-radius:0; }
+.logo { width:min(900px,96vw); display:block; margin:0 auto 12px; border-radius:0; }
 .opening-video { width:100%; max-width:900px; display:block; margin:18px auto 28px; border-radius:18px; border:1px solid rgba(215,173,85,.45); box-shadow:0 18px 60px rgba(0,0,0,.5); background:#000; }
 .kicker { text-align:center; letter-spacing:5px; font-size:12px; color:#cfc7b8; }
 h1 { text-align:center; margin:8px 0 2px; font-size:clamp(36px,7vw,76px); letter-spacing:3px; color:var(--gold); text-shadow:0 0 18px rgba(215,173,85,.2); }
@@ -93,7 +94,7 @@ button, input { font:inherit; }
 }
 @media(max-width:520px) {
   .wrap { padding:14px 10px 32px; }
-  .logo { width:min(190px,70vw); }
+  .logo { width:100%; }
   .kicker { letter-spacing:3px; font-size:10px; }
   h1 { font-size:clamp(30px,12vw,48px); letter-spacing:2px; }
   .tag { font-size:11px; letter-spacing:2px; margin-bottom:18px; }
