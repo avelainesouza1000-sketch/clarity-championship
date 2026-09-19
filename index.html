@@ -50,7 +50,7 @@ input:focus { border-color:var(--gold); }
   background:#111; cursor:pointer; min-height:300px; transition:.2s; color:white;
 }
 .team-card:hover { transform:translateY(-4px); border-color:var(--accent); box-shadow:0 0 25px color-mix(in srgb, var(--accent), transparent 65%); }
-.team-card img { width:100%; height:330px; object-fit:cover; display:block; }
+.team-card img { width:100%; height:auto; object-fit:contain; display:block; }
 .vote-overlay {
   position:absolute; left:0; right:0; bottom:0; padding:28px 8px 12px;
   background:linear-gradient(transparent,rgba(0,0,0,.95)); text-align:center;
@@ -87,7 +87,7 @@ button, input { font:inherit; }
   .box { padding:16px; }
   .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
   .team-card:last-child { grid-column:1/-1; width:50%; max-width:50%; justify-self:center; }
-  .team-card img { height:auto; aspect-ratio:0.78; object-fit:cover; }
+  .team-card img { height:auto; aspect-ratio:auto; object-fit:contain; }
   .row { grid-template-columns:82px minmax(0,1fr) 42px; gap:8px; }
   .tag { letter-spacing:3px; }
   .how-grid { grid-template-columns:1fr; }
@@ -106,7 +106,7 @@ button, input { font:inherit; }
   input { font-size:16px; padding:13px 12px; }
   .grid { grid-template-columns:1fr; gap:10px; }
   .team-card, .team-card:last-child { grid-column:auto; width:100%; max-width:none; }
-  .team-card img { height:auto; aspect-ratio:1/1.05; }
+  .team-card img { height:auto; aspect-ratio:auto; object-fit:contain; }
   .vote-overlay { padding:34px 8px 12px; }
   .vote-overlay strong { font-size:18px; }
   .section-title { margin:22px 0 14px; letter-spacing:2px; font-size:14px; }
@@ -239,10 +239,6 @@ button, input { font:inherit; }
       </div>
     </div>
 
-    <div class="names">
-      <div class="section-title">PARTICIPANTES DA TORCIDA</div>
-      <div id="namesList" class="names-list">Nenhum voto registrado ainda.</div>
-    </div>
   </div>
 
   <footer>CLARITY TRADING SCHOOL • LMP — A LÓGICA MATEMÁTICA DO PREÇO</footer>
@@ -273,34 +269,27 @@ function setStatus(message, good=false) {
   el.classList.toggle("good", good);
 }
 
-async function getVotes() {
-  const url = `${VOTOS_ENDPOINT}?select=nome,equipe,criado_em&order=criado_em.asc`;
-  const response = await fetch(url, { headers: headers() });
-  if (!response.ok) throw new Error(`Erro ao carregar votos (${response.status})`);
+async function getCounts() {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/contagem_publica`, {
+    method: "POST",
+    headers: headers({ "Content-Type": "application/json" }),
+    body: "{}"
+  });
+  if (!response.ok) throw new Error(`Erro ao carregar placar (${response.status})`);
   return await response.json();
 }
 
 async function render() {
   try {
-    const votes = await getVotes();
+    const rows = await getCounts();
     const counts = Object.fromEntries(teams.map(t => [t, 0]));
-    votes.forEach(v => { if (counts[v.equipe] !== undefined) counts[v.equipe]++; });
+    rows.forEach(v => { if (counts[v.equipe] !== undefined) counts[v.equipe] = Number(v.total) || 0; });
     const max = Math.max(1, ...Object.values(counts));
 
     teams.forEach(t => {
       document.getElementById("count-" + t).textContent = counts[t];
       document.getElementById("bar-" + t).style.width = (counts[t] / max * 100) + "%";
     });
-
-    const list = document.getElementById("namesList");
-    if (!votes.length) {
-      list.textContent = "Nenhum voto registrado ainda.";
-    } else {
-      const recent = [...votes].reverse();
-      list.innerHTML = recent.map(v =>
-        `<div>• <strong>${escapeHtml(v.nome)}</strong> — ${escapeHtml(v.equipe)}</div>`
-      ).join("");
-    }
 
     let updated = document.getElementById("updatedAt");
     if (!updated) {
