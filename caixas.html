@@ -250,16 +250,92 @@ const EQUIPES = [
  {nome:"AXIOM",icone:"♈"}, {nome:"PRIME",icone:"♜"}, {nome:"ORION",icone:"✦"}
 ];
 
-let placar = JSON.parse(localStorage.getItem("clarity_placar") || "null")
-  || Object.fromEntries(EQUIPES.map(e=>[e.nome,0]));
-let historico = JSON.parse(localStorage.getItem("clarity_historico") || "[]");
-let usados = JSON.parse(localStorage.getItem("clarity_usados") || "[]");
-const IDS_ATUAIS = new Set(CAIXAS.map(c => c.id));
-usados = usados.filter(id => IDS_ATUAIS.has(id));
+const SUPABASE_URL = "https://sjjhwkivihyyrdgmcpkd.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_OW9G_BWJ47VhLaTwVXhA_g_LYs2iNrk";
+const RESULTADOS_ENDPOINT = `${SUPABASE_URL}/rest/v1/caixa_resultados`;
+
+let placar = Object.fromEntries(EQUIPES.map(e=>[e.nome,0]));
+let historico = [];
+let usados = [];
+let resultadosRemotos = [];
 let equipeSelecionada=null, caixaAtual=null, respondida=false;
 let ultimaAcao=null;
 
 const $=id=>document.getElementById(id);
+
+function supabaseHeaders(extra={}){
+ return {
+  "apikey":SUPABASE_ANON_KEY,
+  "Authorization":`Bearer ${SUPABASE_ANON_KEY}`,
+  ...extra
+ };
+}
+
+async function buscarResultados(){
+ const res=await fetch(`${RESULTADOS_ENDPOINT}?select=id,caixa_id,equipe,acertou,pontos,criado_em&order=criado_em.asc`,{headers:supabaseHeaders()});
+ if(!res.ok) throw new Error(`Não foi possível carregar o placar (HTTP ${res.status})`);
+ return await res.json();
+}
+
+async function inserirResultado(caixa,equipe,acertou,pontos){
+ const res=await fetch(RESULTADOS_ENDPOINT,{method:"POST",headers:supabaseHeaders({"Content-Type":"application/json","Prefer":"return=representation"}),body:JSON.stringify({caixa_id:caixa,equipe,acertou,pontos})});
+ if(!res.ok) throw new Error(`Não foi possível salvar o resultado (HTTP ${res.status})`);
+ return await res.json();
+}
+
+async function excluirResultado(id){
+ const res=await fetch(`${RESULTADOS_ENDPOINT}?id=eq.${encodeURIComponent(id)}`,{method:"DELETE",headers:supabaseHeaders({"Prefer":"return=minimal"})});
+ if(!res.ok) throw new Error(`Não foi possível desfazer o resultado (HTTP ${res.status})`);
+}
+
+async function zerarResultadosRemotos(){
+ const res=await fetch(`${RESULTADOS_ENDPOINT}?id=not.is.null`,{method:"DELETE",headers:supabaseHeaders({"Prefer":"return=minimal"})});
+ if(!res.ok) throw new Error(`Não foi possível zerar o campeonato (HTTP ${res.status})`);
+}
+
+function aplicarResultados(lista){
+ resultadosRemotos=lista||[];
+ placar=Object.fromEntries(EQUIPES.map(e=>[e.nome,0]));
+ resultadosRemotos.forEach(r=>{
+   if(Object.prototype.hasOwnProperty.call(placar,r.equipe)) placar[r.equipe]+=Number(r.pontos)||0;
+ });
+ usados=[...new Set(resultadosRemotos.map(r=>Number(r.caixa_id)))];
+ historico=[...resultadosRemotos].reverse().map(r=>({
+   id:r.id, caixa:r.caixa_id, equipe:r.equipe, acertou:!!r.acertou,
+   pontos:Number(r.pontos)||0,
+   data:r.criado_em?new Date(r.criado_em).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):""
+ }));
+ const ultimo=resultadosRemotos.length?resultadosRemotos[resultadosRemotos.length-1]:null;
+ ultimaAcao=ultimo?{
+   id:ultimo.id, caixaId:Number(ultimo.caixa_id), equipe:ultimo.equipe,
+   pontos:Number(ultimo.pontos)||0, acertou:!!ultimo.acertou
+ }:null;
+ render();
+}
+
+async function sincronizar(){
+ try{
+   const dados=await buscarResultados();
+   // Migração única: se o navegador do operador ainda tiver o histórico antigo
+   // e o banco estiver vazio, envia esse histórico para o placar compartilhado.
+   const localHist=JSON.parse(localStorage.getItem("clarity_historico")||"[]");
+   if(!dados.length && localHist.length && !localStorage.getItem("clarity_migrado_supabase")){
+     for(const h of localHist){
+       await inserirResultado(Number(h.caixa),h.equipe,!!h.acertou,Number(h.pontos)||0);
+     }
+     localStorage.setItem("clarity_migrado_supabase","1");
+     const atualizados=await buscarResultados();
+     aplicarResultados(atualizados);
+   }else{
+     aplicarResultados(dados);
+   }
+   $("status").textContent=resultadosRemotos.length?"PLACAR SINCRONIZADO • DADOS COMPARTILHADOS":"AGUARDANDO ABERTURA";
+ }catch(err){
+   console.error(err);
+   $("status").textContent="ERRO AO SINCRONIZAR O PLACAR • VERIFIQUE A CONEXÃO";
+   render();
+ }
+}
 
 EQUIPES.forEach(e=>{
  const el=document.createElement("div");
@@ -285,37 +361,23 @@ function proximaCaixa(){
 }
 
 function abrirCaixa(){
- // Se a caixa anterior já foi finalizada, permite iniciar a próxima.
- if(respondida){
-   respondida=false;
-   caixaAtual=null;
- }
- if(!equipeSelecionada){
-   $("status").textContent="SELECIONE UMA EQUIPE PRIMEIRO";
-   return;
- }
+ if(respondida){respondida=false;caixaAtual=null;}
+ if(!equipeSelecionada){$("status").textContent="SELECIONE UMA EQUIPE PRIMEIRO";return;}
  const caixa=proximaCaixa();
  if(!caixa){
    $("status").textContent="TODAS AS CAIXAS CADASTRADAS FORAM UTILIZADAS";
-   $("question").textContent="Não há mais caixas disponíveis. Para uma nova competição, use “Zerar Campeonato” e cadastre novas caixas.";
-   $("openBtn").disabled=true;
-   return;
+   $("question").textContent="Não há mais caixas disponíveis. Para uma nova competição, use “Zerar Campeonato”.";
+   $("openBtn").disabled=true;return;
  }
  caixaAtual=caixa;respondida=false;
  $("chest").classList.add("open");
  $("status").textContent=`CAIXA ${caixa.id} • ${equipeSelecionada} • DESAFIO REVELADO`;
  $("question").textContent=caixa.pergunta;
  $("points").textContent=`VALOR DA CAIXA • ${caixa.valor} PONTOS`;
-
  const img=$("questionImage");
  if(caixa.imagem){img.style.display="block";$("img").src=caixa.imagem}else img.style.display="none";
-
  $("options").innerHTML=caixa.alternativas.map((a,i)=>`<div class="option" data-letter="${String.fromCharCode(65+i)}"><b>${String.fromCharCode(65+i)})</b> ${a}</div>`).join("");
-
- if(caixa.bonus){
-   $("bonus").classList.add("show");$("bonusText").textContent=caixa.bonus;
- }else $("bonus").classList.remove("show");
-
+ if(caixa.bonus){$("bonus").classList.add("show");$("bonusText").textContent=caixa.bonus}else $("bonus").classList.remove("show");
  $("result").classList.remove("show");
  $("hit").disabled=false;$("miss").disabled=false;$("openBtn").disabled=true;
 }
@@ -323,120 +385,71 @@ function abrirCaixa(){
 $("hit").onclick=()=>finalizar(true);
 $("miss").onclick=()=>finalizar(false);
 
-function finalizar(acertou){
+async function finalizar(acertou){
  if(!caixaAtual || respondida)return;
  respondida=true;
- const antes=placar[equipeSelecionada];
  const pontos=acertou?caixaAtual.valor:0;
- ultimaAcao={
-   caixaId:caixaAtual.id,
-   equipe:equipeSelecionada,
-   pontos,
-   acertou,
-   estadoAnterior:antes
- };
- placar[equipeSelecionada]+=pontos;
- usados.push(caixaAtual.id);
- historico.unshift({
-   caixa:caixaAtual.id,equipe:equipeSelecionada,acertou,pontos,
-   data:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
- });
- localStorage.setItem("clarity_placar",JSON.stringify(placar));
- localStorage.setItem("clarity_historico",JSON.stringify(historico));
- localStorage.setItem("clarity_usados",JSON.stringify(usados));
- $("undoBtn").disabled=false;
-
- $("result").classList.add("show");
- $("result").innerHTML=acertou
-   ? `<b class="good">✓ ACERTOU!</b><br><span style="color:#ffe6a0">${equipeSelecionada}: ${antes} → <b>${placar[equipeSelecionada]}</b> pontos</span>`
-   : `<b class="bad">✕ ERROU!</b><br><span style="color:#aeb8c6">${equipeSelecionada}: ${antes} → ${placar[equipeSelecionada]} pontos</span>`;
-
  $("hit").disabled=true;$("miss").disabled=true;
- $("chest").classList.remove("open");
- $("openBtn").disabled=false;
- $("openBtn").textContent="🎁  ABRIR PRÓXIMA CAIXA";
- render();
+ try{
+   await inserirResultado(caixaAtual.id,equipeSelecionada,acertou,pontos);
+   await sincronizar();
+   const atual=placar[equipeSelecionada]||0;
+   $("result").classList.add("show");
+   $("result").innerHTML=acertou
+    ? `<b class="good">✓ ACERTOU!</b><br><span style="color:#ffe6a0">${equipeSelecionada}: <b>${atual}</b> pontos</span>`
+    : `<b class="bad">✕ ERROU!</b><br><span style="color:#aeb8c6">${equipeSelecionada}: ${atual} pontos</span>`;
+   $("chest").classList.remove("open");
+   $("openBtn").disabled=false;
+   $("openBtn").textContent="🎁  ABRIR PRÓXIMA CAIXA";
+ }catch(err){
+   console.error(err);
+   respondida=false;$("hit").disabled=false;$("miss").disabled=false;
+   $("status").textContent="NÃO FOI POSSÍVEL SALVAR O RESULTADO • TENTE NOVAMENTE";
+ }
 }
 
-
-$("undoBtn").onclick=()=>{
- if(!ultimaAcao)return;
+$("undoBtn").onclick=async()=>{
  const a=ultimaAcao;
- // Restore score exactly to its previous value.
- placar[a.equipe]=a.estadoAnterior;
- // Remove the specific box from used list.
- usados=usados.filter(id=>id!==a.caixaId);
- // Remove the latest matching history entry.
- const idx=historico.findIndex(h=>h.caixa===a.caixaId && h.equipe===a.equipe);
- if(idx>=0)historico.splice(idx,1);
- localStorage.setItem("clarity_placar",JSON.stringify(placar));
- localStorage.setItem("clarity_historico",JSON.stringify(historico));
- localStorage.setItem("clarity_usados",JSON.stringify(usados));
- ultimaAcao=null;
- caixaAtual=null;
- respondida=false;
- $("chest").classList.remove("open");
- $("hit").disabled=true;
- $("miss").disabled=true;
- $("openBtn").disabled=!equipeSelecionada;
- $("openBtn").textContent="🎁  ABRIR CAIXA";
- $("result").classList.remove("show");
- $("status").textContent="RESULTADO DESFEITO • CAIXA DISPONÍVEL NOVAMENTE";
- $("question").textContent="A última ação foi desfeita. A caixa pode ser aberta novamente.";
- $("options").innerHTML="";
- $("questionImage").style.display="none";
- $("bonus").classList.remove("show");
- $("points").textContent="VALOR DA CAIXA • —";
+ if(!a)return;
  $("undoBtn").disabled=true;
- render();
+ try{
+   await excluirResultado(a.id);
+   ultimaAcao=null;caixaAtual=null;respondida=false;
+   $("chest").classList.remove("open");$("hit").disabled=true;$("miss").disabled=true;
+   $("openBtn").disabled=!equipeSelecionada;$("openBtn").textContent="🎁  ABRIR CAIXA";
+   $("result").classList.remove("show");$("status").textContent="RESULTADO DESFEITO • CAIXA DISPONÍVEL NOVAMENTE";
+   $("question").textContent="A última ação foi desfeita. A caixa pode ser aberta novamente.";
+   $("options").innerHTML="";$("questionImage").style.display="none";$("bonus").classList.remove("show");$("points").textContent="VALOR DA CAIXA • —";
+   await sincronizar();
+ }catch(err){console.error(err);$("undoBtn").disabled=false;$("status").textContent="NÃO FOI POSSÍVEL DESFAZER O RESULTADO";}
 };
 
-function zerarCampeonato(){
- placar=Object.fromEntries(EQUIPES.map(e=>[e.nome,0]));
- historico=[];
- usados=[];
- ultimaAcao=null;
- equipeSelecionada=null;
- caixaAtual=null;
- respondida=false;
- localStorage.removeItem("clarity_placar");
- localStorage.removeItem("clarity_historico");
- localStorage.removeItem("clarity_usados");
- document.querySelectorAll(".team").forEach(x=>x.classList.remove("selected"));
- $("selectedLabel").textContent="SELECIONE UMA EQUIPE";
- $("openBtn").disabled=true;
- $("openBtn").textContent="🎁  ABRIR CAIXA";
- $("question").textContent="Selecione uma equipe e abra a caixa para revelar o desafio.";
- $("status").textContent="AGUARDANDO ABERTURA";
- $("points").textContent="VALOR DA CAIXA • —";
- $("options").innerHTML="";
- $("questionImage").style.display="none";
- $("bonus").classList.remove("show");
- $("result").classList.remove("show");
- $("chest").classList.remove("open");
- $("hit").disabled=true;
- $("miss").disabled=true;
- $("undoBtn").disabled=true;
- render();
-};
+async function zerarCampeonato(){
+ if(!confirm("Tem certeza que deseja zerar o campeonato para TODOS os dispositivos?"))return;
+ try{
+   await zerarResultadosRemotos();
+   localStorage.removeItem("clarity_placar");localStorage.removeItem("clarity_historico");localStorage.removeItem("clarity_usados");localStorage.removeItem("clarity_migrado_supabase");
+   placar=Object.fromEntries(EQUIPES.map(e=>[e.nome,0]));historico=[];usados=[];resultadosRemotos=[];ultimaAcao=null;equipeSelecionada=null;caixaAtual=null;respondida=false;
+   document.querySelectorAll(".team").forEach(x=>x.classList.remove("selected"));
+   $("selectedLabel").textContent="SELECIONE UMA EQUIPE";$("openBtn").disabled=true;$("openBtn").textContent="🎁  ABRIR CAIXA";
+   $("question").textContent="Selecione uma equipe e abra a caixa para revelar o desafio.";$("status").textContent="CAMPEONATO ZERADO • TODOS OS DISPOSITIVOS SINCRONIZADOS";$("points").textContent="VALOR DA CAIXA • —";
+   $("options").innerHTML="";$("questionImage").style.display="none";$("bonus").classList.remove("show");$("result").classList.remove("show");$("chest").classList.remove("open");$("hit").disabled=true;$("miss").disabled=true;$("undoBtn").disabled=true;
+   render();
+ }catch(err){console.error(err);$("status").textContent="NÃO FOI POSSÍVEL ZERAR O CAMPEONATO";}
+}
 
-// Botão de reset ligado diretamente ao evento para funcionar mesmo após atualizações da página.
-$("resetBtn").addEventListener("click", zerarCampeonato);
+$("resetBtn").addEventListener("click",zerarCampeonato);
 
 function render(){
  const sorted=[...EQUIPES].sort((a,b)=>placar[b.nome]-placar[a.nome]);
- $("board").innerHTML=sorted.map((e,i)=>`
-  <div class="row"><span>${i+1}º</span><span><b>${e.icone} ${e.nome}</b></span><span class="pts">${placar[e.nome]} pts</span></div>
- `).join("");
-
+ $("board").innerHTML=sorted.map((e,i)=>`<div class="row"><span>${i+1}º</span><span><b>${e.icone} ${e.nome}</b></span><span class="pts">${placar[e.nome]} pts</span></div>`).join("");
  $("undoBtn").disabled=!ultimaAcao;
- $("history").innerHTML=historico.length ? historico.map((h,i)=>`
-  <div class="row"><span>${String(i+1).padStart(2,"0")}</span><span><b>${h.equipe}</b> • Caixa ${h.caixa}</span>
-  <span class="${h.acertou?"good":"bad"}">${h.acertou?"✓ Acertou":"✕ Errou"}</span>
-  <span class="${h.acertou?"good":"bad"}">${h.acertou?"+"+h.pontos:"+0"}</span></div>
- `).join("") : '<div style="padding:16px;color:#657489;font-size:11px">Nenhuma caixa aberta ainda.</div>';
+ $("history").innerHTML=historico.length?historico.map((h,i)=>`<div class="row"><span>${String(i+1).padStart(2,"0")}</span><span><b>${h.equipe}</b> • Caixa ${h.caixa}</span><span class="${h.acertou?"good":"bad"}">${h.acertou?"✓ Acertou":"✕ Errou"}</span><span class="${h.acertou?"good":"bad"}">${h.acertou?"+"+h.pontos:"+0"}</span></div>`).join(""):'<div style="padding:16px;color:#657489;font-size:11px">Nenhuma caixa aberta ainda.</div>';
 }
+
 render();
+sincronizar();
+setInterval(sincronizar,10000);
 </script>
 </body>
 </html>
