@@ -437,16 +437,21 @@ td{
 
       <div id="drawResult" class="draw-result hidden">
 
-        <div class="muted">
-          PARTICIPANTE SORTEADO
-        </div>
-
+        <div class="muted">PARTICIPANTE SORTEADO</div>
         <div id="drawName" class="draw-name"></div>
-
         <div id="drawPhone" class="draw-phone"></div>
-
         <div id="drawTeam" style="margin-top:10px;"></div>
+      </div>
 
+      <div class="draw-result" style="margin-top:14px;">
+        <div class="topbar">
+          <div>
+            <strong>🏆 Participantes sorteados</strong>
+            <div id="drawProgress" class="muted" style="margin-top:5px;">Nenhum sorteio realizado nesta equipe.</div>
+          </div>
+          <button id="resetDrawBtn" class="secondary" type="button">Reiniciar sorteios da equipe</button>
+        </div>
+        <ol id="drawHistory" style="margin:14px 0 0;padding-left:24px;"></ol>
       </div>
 
     </div>
@@ -626,39 +631,54 @@ async function loadVotes(){
     </tr>
   `;
 
-  const {data,error} =
-    await client
-      .from("votos")
-      .select(
-        "nome,telefone,equipe,criado_em"
-      )
-      .order(
-        "criado_em",
-        {ascending:false}
-      );
+  // O Supabase limita cada resposta; buscamos em páginas de 1.000
+  // registros até receber uma página menor, sem alterar nenhum voto.
+  const pageSize = 1000;
+  let allRows = [];
+  let from = 0;
 
-  if(error){
+  try {
+    while (true) {
+      const { data, error } = await client
+        .from("votos")
+        .select("nome,telefone,equipe,criado_em")
+        .order("criado_em", { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      if (error) throw error;
+
+      const page = data || [];
+      allRows = allRows.concat(page);
+
+      if (page.length < pageSize) break;
+      from += pageSize;
+    }
+
+    allVotes = allRows;
+    renderStats();
+    renderTable();
 
     showMsg(
       $("dataMsg"),
-      "Este usuário não possui permissão para consultar os participantes."
+      `Dados atualizados: ${allVotes.length} votos carregados.`,
+      "ok"
+    );
+  } catch (error) {
+    console.error("Erro ao carregar votos:", error);
+
+    showMsg(
+      $("dataMsg"),
+      "Não foi possível carregar todos os votos. Verifique a conexão e as permissões do Supabase."
     );
 
     $("tbody").innerHTML = `
       <tr>
         <td colspan="4" class="muted">
-          Acesso não autorizado.
+          Falha ao carregar os participantes. Tente atualizar novamente.
         </td>
       </tr>
     `;
-
-    return;
   }
-
-  allVotes = data || [];
-
-  renderStats();
-  renderTable();
 }
 
 function exportCSV(){
@@ -802,72 +822,111 @@ $("password").addEventListener(
   }
 );
 
-$("drawBtn").addEventListener(
-  "click",
-  () => {
+// Histórico separado por equipe e salvo neste navegador.
+// Evita sortear a mesma pessoa novamente até o histórico ser reiniciado.
+const DRAW_STORAGE_KEY = "clarityChampionshipDrawHistory_v1";
 
-    hideMsg($("drawMsg"));
+function readDrawHistory(){
+  try { return JSON.parse(localStorage.getItem(DRAW_STORAGE_KEY) || "{}"); }
+  catch (_) { return {}; }
+}
+let drawHistoryByTeam = readDrawHistory();
 
-    $("drawResult")
-      .classList.add("hidden");
+function saveDrawHistory(){
+  try { localStorage.setItem(DRAW_STORAGE_KEY, JSON.stringify(drawHistoryByTeam)); }
+  catch (error) { console.warn("Não foi possível salvar o histórico neste navegador.", error); }
+}
 
-    const team =
-      $("drawTeam").value;
+function participantDrawKey(v){
+  const phone = String(v.telefone || "").replace(/\D/g, "");
+  if(phone) return "tel:" + phone;
+  return "fallback:" + String(v.nome || "").trim().toLowerCase() + "|" + String(v.criado_em || "");
+}
 
-    if(!team){
-
-      showMsg(
-        $("drawMsg"),
-        "Selecione primeiro a equipe vencedora."
-      );
-
-      return;
-    }
-
-    const eligible =
-      allVotes.filter(
-        v => v.equipe === team
-      );
-
-    if(!eligible.length){
-
-      showMsg(
-        $("drawMsg"),
-        `Não há participantes com voto registrado para a equipe ${team}.`
-      );
-
-      return;
-    }
-
-    const confirmed =
-      confirm(
-        `Sortear agora um participante entre os ${eligible.length} voto(s) da equipe ${team}?`
-      );
-
-    if(!confirmed) return;
-
-    const winner =
-      eligible[
-        Math.floor(
-          Math.random() * eligible.length
-        )
-      ];
-
-    $("drawName").textContent =
-      winner.nome || "Sem nome";
-
-    $("drawPhone").textContent =
-      `📱 ${formatPhone(winner.telefone)}`;
-
-    $("drawTeam").innerHTML =
-      `<span class="badge ${teamClass(winner.equipe)}">
-        ${escapeHtml(winner.equipe)}
-      </span>`;
-
-    $("drawResult")
-      .classList.remove("hidden");
+function renderDrawHistory(){
+  const team = $("drawTeam").value;
+  const history = team ? (drawHistoryByTeam[team] || []) : [];
+  $("drawProgress").textContent = team
+    ? `${history.length} participante(s) sorteado(s) para ${team}. Você pode continuar até esgotar os participantes elegíveis.`
+    : "Selecione uma equipe para visualizar o histórico.";
+  $("drawHistory").innerHTML = history.map(item => `
+    <li style="margin:8px 0;">
+      <strong>${escapeHtml(item.nome || "Sem nome")}</strong>
+      <span class="muted"> — ${escapeHtml(formatPhone(item.telefone))}</span>
+    </li>
+  `).join("");
+  if(team && !history.length){
+    $("drawHistory").innerHTML = '<li class="muted">Nenhum participante sorteado nesta equipe.</li>';
   }
-);
+}
+
+$("drawTeam").addEventListener("change", () => {
+  $("drawResult").classList.add("hidden");
+  hideMsg($("drawMsg"));
+  renderDrawHistory();
+});
+
+$("drawBtn").addEventListener("click", () => {
+  hideMsg($("drawMsg"));
+  const team = $("drawTeam").value;
+  if(!team){
+    showMsg($("drawMsg"), "Selecione primeiro a equipe vencedora.");
+    return;
+  }
+
+  const eligible = allVotes.filter(v => v.equipe === team);
+  if(!eligible.length){
+    showMsg($("drawMsg"), `Não há participantes com voto registrado para a equipe ${team}.`);
+    return;
+  }
+
+  const history = drawHistoryByTeam[team] || [];
+  const alreadyDrawn = new Set(history.map(item => item.key));
+  const remaining = eligible.filter(v => !alreadyDrawn.has(participantDrawKey(v)));
+
+  if(!remaining.length){
+    showMsg($("drawMsg"), `Todos os participantes elegíveis da equipe ${team} já foram sorteados. Use “Reiniciar sorteios da equipe” para começar novamente.`, "error");
+    $("drawResult").classList.add("hidden");
+    renderDrawHistory();
+    return;
+  }
+
+  const winner = remaining[Math.floor(Math.random() * remaining.length)];
+  const entry = {
+    key: participantDrawKey(winner),
+    nome: winner.nome || "Sem nome",
+    telefone: winner.telefone || "",
+    criado_em: winner.criado_em || ""
+  };
+
+  if(!drawHistoryByTeam[team]) drawHistoryByTeam[team] = [];
+  drawHistoryByTeam[team].push(entry);
+  saveDrawHistory();
+
+  $("drawName").textContent = entry.nome;
+  $("drawPhone").textContent = `📱 ${formatPhone(entry.telefone)}`;
+  $("drawTeam").innerHTML = `<span class="badge ${teamClass(team)}">${escapeHtml(team)}</span>`;
+  $("drawResult").classList.remove("hidden");
+  renderDrawHistory();
+});
+
+$("resetDrawBtn").addEventListener("click", () => {
+  const team = $("drawTeam").value;
+  if(!team){
+    showMsg($("drawMsg"), "Selecione a equipe cujo histórico deseja reiniciar.");
+    return;
+  }
+  const confirmed = confirm(`Reiniciar o histórico de sorteios da equipe ${team}? Isso permitirá sortear novamente os participantes dessa equipe. Os votos não serão alterados.`);
+  if(!confirmed) return;
+
+  drawHistoryByTeam[team] = [];
+  saveDrawHistory();
+  $("drawResult").classList.add("hidden");
+  hideMsg($("drawMsg"));
+  renderDrawHistory();
+});
+
+renderDrawHistory();
 
 async function checkSession(){
 
